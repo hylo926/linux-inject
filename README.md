@@ -5,7 +5,7 @@
 
 * Performs injection using `ptrace()` rather than `LD_PRELOAD`, since the target process is already running at the time of injection
 
-* Supports x86, x86_64, and ARM
+* Supports x86, x86_64, ARM, and PPC
 
 * Does not require the target process to have been built with `-ldl` flag, because it loads the shared object using `__libc_dlopen_mode()` from libc rather than `dlopen()` from libdl
 
@@ -34,6 +34,10 @@
     * x86_64:
 
             make x86_64
+
+    * ppc:
+
+            make ppc
 
 ## Usage
 

@@ -1,6 +1,7 @@
 CC	= clang
-PPC_CC  = /opt/freescale/usr/local/gcc-4.3.74-eglibc-2.8.74-dp-2/powerpc-none-linux-gnuspe/bin/powerpc-none-linux-gnuspe-gcc
 CFLAGS	= -std=gnu99 -ggdb 
+# Use your own ppc compiler here because clang doesn't fully support ppc
+PPC_CC  = $(PPC_ROOT)/powerpc-none-linux-gnuspe-gcc
 PPC_CFLAGS = -ggdb -fPIC -Wall -Wextra -O2 -g -Wa,-mregnames
 UNAME_M := $(shell uname -m)
 
