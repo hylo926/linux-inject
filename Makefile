@@ -1,8 +1,10 @@
 CC	= clang
-CFLAGS	= -std=gnu99 -ggdb
+PPC_CC  = /opt/freescale/usr/local/gcc-4.3.74-eglibc-2.8.74-dp-2/powerpc-none-linux-gnuspe/bin/powerpc-none-linux-gnuspe-gcc
+CFLAGS	= -std=gnu99 -ggdb 
+PPC_CFLAGS = -ggdb -fPIC -Wall -Wextra -O2 -g -Wa,-mregnames
 UNAME_M := $(shell uname -m)
 
-.PHONY: x86 x86_64 arm
+.PHONY: x86 x86_64 arm ppc
 
 all:
 ifeq ($(UNAME_M),x86_64)
@@ -14,6 +16,9 @@ endif
 ifneq (,$(findstring arm,$(UNAME_M)))
 	$(MAKE) arm
 endif
+ifeq ($(UNAME_M),ppc)
+	$(MAKE) ppc
+endif
 
 
 arm: sample-target sample-library.so
@@ -21,6 +26,9 @@ arm: sample-target sample-library.so
 
 x86: sample-target sample-library.so
 	$(CC) $(CFLAGS) -o inject utils.c ptrace.c inject-x86.c -ldl
+
+ppc: sample-target sample-library.so
+	$(PPC_CC) $(PPC_CFLAGS) -DPPC -o inject utils.c ptrace.c inject-ppc.c -ldl
 	
 x86_64:
 	$(CC) $(CFLAGS) -o inject utils.c ptrace.c inject-x86_64.c -ldl

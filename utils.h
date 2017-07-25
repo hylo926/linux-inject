@@ -1,6 +1,8 @@
 #define INTEL_RET_INSTRUCTION 0xc3
 #define INTEL_INT3_INSTRUCTION 0xcc
 
+void printHex4(char* prefix, int32_t instr);
+void printHex8(char* addr, int loop);
 pid_t findProcessByName(char* processName);
 long freespaceaddr(pid_t pid);
 long getlibcaddr(pid_t pid);

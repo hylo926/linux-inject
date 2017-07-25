@@ -7,6 +7,30 @@
 
 #include "utils.h"
 
+#define DEBUG 1
+
+#if DEBUG                                                                  
+#define dprintf(...) do{printf(__VA_ARGS__);}while(0)      
+#else                                                                      
+#define dprintf(...)                                                       
+#endif                                                                     
+
+void printHex4(char* prefix, int32_t instr)
+{
+    dprintf ("%s%02x %02x %02x %02x\n", prefix? prefix:"",
+	    (instr&0xFF000000) >> 24, (instr&0x00FF0000) >> 16, 
+	    (instr&0x0000FF00) >> 8, instr&0x000000FF);
+}
+
+void printHex8(char* addr, int loop)
+{
+    int i;
+    for (i = 0 ; i < loop ; i+=8)
+	dprintf("%02x %02x %02x %02x . %02x %02x %02x %02x\n", 
+		addr[i], addr[i+1], addr[i+2], addr[i+3],
+		addr[i+4], addr[i+5], addr[i+6], addr[i+7]);
+}
+
 /*
  * findProcessByName()
  *
@@ -156,8 +180,6 @@ long getlibcaddr(pid_t pid)
 	char filename[30];
 	char line[850];
 	long addr;
-	char perms[5];
-	char* modulePath;
 	sprintf(filename, "/proc/%d/maps", pid);
 	fp = fopen(filename, "r");
 	if(fp == NULL)
@@ -197,8 +219,6 @@ int checkloaded(pid_t pid, char* libname)
 	char filename[30];
 	char line[850];
 	long addr;
-	char perms[5];
-	char* modulePath;
 	sprintf(filename, "/proc/%d/maps", pid);
 	fp = fopen(filename, "r");
 	if(fp == NULL)
