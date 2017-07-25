@@ -28,8 +28,10 @@ arm: sample-target sample-library.so
 x86: sample-target sample-library.so
 	$(CC) $(CFLAGS) -o inject utils.c ptrace.c inject-x86.c -ldl
 
+ppc: CC=$(PPC_CC) 
+ppc: CFLAGS=$(PPC_CFLAGS)
 ppc: sample-target sample-library.so
-	$(PPC_CC) $(PPC_CFLAGS) -DPPC -o inject utils.c ptrace.c inject-ppc.c -ldl
+	$(CC) -DPPC $(CFLAGS) -o inject utils.c ptrace.c inject-ppc.c -ldl
 	
 x86_64:
 	$(CC) $(CFLAGS) -o inject utils.c ptrace.c inject-x86_64.c -ldl
