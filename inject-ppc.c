@@ -8,14 +8,6 @@
 #include "utils.h"
 #include "ptrace.h"
 
-#define DEBUG 1
-
-#if DEBUG                                                                  
-#define dprintf(...) do{printf(__VA_ARGS__);}while(0)      
-#else                                                                      
-#define dprintf(...)                                                       
-#endif                                                                     
-
 /*
  * injectSharedLibrary()
  *
@@ -67,31 +59,24 @@ void injectSharedLibrary(long mallocaddr, long freeaddr, long dlopenaddr)
 	// the reverse of the order we want to call them in (except for the
 	// first call):
 
-	asm("addi r1, r1, -120");
+	asm("addi r1, r1, -120");	// secure enough stack frame
 	asm("stw     r3,20(r1)");	// raise()
 	asm("stw     r6,24(r1)");	// free()
 	asm("stw     r5,28(r1)");	// __libc_dlopen_mode()
 	asm("stw     r3,32(r1)");	// raise()
 
-//	asm("push {r1}");	// raise()
-//	asm("push {r4}");	// free()
-//	asm("push {r1}");	// raise()
-//	asm("push {r3}");	// __libc_dlopen_mode()
-//	asm("push {r1}");	// raise()
-
 	// call malloc() to allocate a buffer to store the path to the shared
 	// library to inject.
 	asm(
 		// choose the amount of memory to allocate with malloc() based
-		// on the size of the path to the shared library passed via r5
+		// on the size of the path to the shared library passed via r7
 		"mr r3, r7 \n"
-		// call malloc(), whose address is already in r2
+		// call malloc(), whose address is already in r4
 		"mtctr r4 \n"
 		"bctrl \n"
-		// copy the return value (which is in r0) into r5 so that it
-		// doesn't get wiped out later
+		// copy the return value (which is in r3) into r14(non-volatile) 
+		// so that it doesn't get wiped out later
 		"mr r14, r3"
-//		"stw r3,36(r1)"
 	);
 
 	// call raise(SIGTRAP) to get back control of the target.
@@ -109,7 +94,7 @@ void injectSharedLibrary(long mallocaddr, long freeaddr, long dlopenaddr)
 	asm(
 		// pop off the stack to get the address of __libc_dlopen_mode()
 		"lwz r0,28(r1) \n"
-		// copy r5 (the address of the malloc'd buffer) into r0 to make
+		// copy r14 (the address of the malloc'd buffer) into r3 to make
 		// it the first argument to __libc_dlopen_mode()
 		"mr r3, r14 \n"
 		// set the second argument to RTLD_LAZY
@@ -117,8 +102,8 @@ void injectSharedLibrary(long mallocaddr, long freeaddr, long dlopenaddr)
 		// call __libc_dlopen_mode()
 		"mtctr r0 \n"
 		"bctrl \n"
-		// copy the return value (which is in r0) into r4 so that it
-		// doesn't get wiped out later
+		// copy the return value (which is in r3) into r15(non-volatile) 
+		// so that it doesn't get wiped out later
 		"mr r15, r3"
 	);
 
@@ -138,7 +123,7 @@ void injectSharedLibrary(long mallocaddr, long freeaddr, long dlopenaddr)
 	asm(
 		// pop off the stack to get the address of free()
 		"lwz r0,24(r1) \n"
-		// copy r5 (the malloc'd buffer) into r0 to make it the first
+		// copy r14 (the malloc'd buffer) into r3 to make it the first
 		// argument to free()
 		"mr r3, r14 \n"
 		// call free()
@@ -274,17 +259,13 @@ int main(int argc, char** argv)
 	//
 	// subtract 4 bytes from the actual address, because ARM's PC actually
 	// refers to the next instruction rather than the current instruction.
-//	regs.uregs[15] = addr - 4;  // ARM r15: PC
 	regs.nip = addr;	    // PPC nip: PC
 
 	// pass arguments to my function injectSharedLibrary() by loading them
 	// into the right registers. see comments in injectSharedLibrary() for
 	// more details.
-//	regs.uregs[1] = targetRaiseAddr; // ARM argument: r0-r3 variable: r4-r8
-//	regs.uregs[2] = targetMallocAddr;
-//	regs.uregs[3] = targetDlopenAddr;
-//	regs.uregs[4] = targetFreeAddr;
-//	regs.uregs[5] = libPathLength;
+	// ARM argument: r0-r3 variables: r4-r8,r10-r11
+	// PPC arguemtn: r3-r10 variables: r14-r31
 
 	regs.gpr[3] = targetRaiseAddr;
 	regs.gpr[4] = targetMallocAddr;
@@ -302,10 +283,6 @@ int main(int argc, char** argv)
 	ptrace_read(target, addr, backup, injectSharedLibrary_size);
 	dprintf("\nbackup\n");
 	printHex8(backup, 24);
-
-//	ptrace_detach(target);
-//	dprintf("ptrace detached\n");
-//	return;
 
 	// set up a buffer containing the code that we'll inject into the target process.
 	char* newcode = malloc(injectSharedLibrary_size * sizeof(char));
@@ -367,9 +344,9 @@ int main(int argc, char** argv)
 	dprintf("\npthread getregs2\n");
 	ptrace_getregs(target, &dlopen_regs);
 	unsigned long libAddr = dlopen_regs.gpr[15];
-	dprintf("libAddr=%s\n", (char*)libAddr);
+//	dprintf("libAddr=%s\n", (char*)libAddr);
 
-	// if r4 is 0 here, then __libc_dlopen_mode() failed, and we should
+	// if r15 is 0 here, then __libc_dlopen_mode() failed, and we should
 	// bail out cleanly.
 	if(libAddr == 0)
 	{

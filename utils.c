@@ -7,14 +7,6 @@
 
 #include "utils.h"
 
-#define DEBUG 1
-
-#if DEBUG                                                                  
-#define dprintf(...) do{printf(__VA_ARGS__);}while(0)      
-#else                                                                      
-#define dprintf(...)                                                       
-#endif                                                                     
-
 void printHex4(char* prefix, int32_t instr)
 {
     dprintf ("%s%02x %02x %02x %02x\n", prefix? prefix:"",
