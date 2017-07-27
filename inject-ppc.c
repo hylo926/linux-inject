@@ -293,18 +293,18 @@ int main(int argc, char** argv)
 
 	// copy injectSharedLibrary()'s code to the target address inside the
 	// target process' address space.
-	dprintf("\npthread write\n");
+	dprintf("\nptace write\n");
 	ptrace_write(target, addr, newcode, injectSharedLibrary_size);
 
 	// now that the new code is in place, let the target run our injected code.
-	dprintf("\npthread cont\n");
+	dprintf("\nptrace cont\n");
 	ptrace_cont(target);
 
 	// at this point, the target should have run malloc(). check its return
 	// value to see if it succeeded, and bail out cleanly if it didn't.
 	struct REG_TYPE malloc_regs;
 	memset(&malloc_regs, 0, sizeof(struct REG_TYPE));
-	dprintf("\npthread getregs\n");
+	dprintf("\nptrace getregs\n");
 	ptrace_getregs(target, &malloc_regs);
 	unsigned int targetBuf = malloc_regs.gpr[14];
 	dprintf("targetBuf=0x%08x\n", (unsigned int)targetBuf);
@@ -326,7 +326,7 @@ int main(int argc, char** argv)
 
 	// read the buffer returned by malloc() and copy the name of our shared
 	// library to that address inside the target process.
-	dprintf("\npthread write2\n");
+	dprintf("\nptrace write2\n");
 	ptrace_write(target, targetBuf, libPath, libPathLength);
 	ptrace_read(target, targetBuf, temp, libPathLength);
 	temp[libPathLength] = 0;
@@ -334,14 +334,14 @@ int main(int argc, char** argv)
 
 	// continue the target's execution again in order to call
 	// __libc_dlopen_mode.
-	dprintf("\npthread cont2\n");
+	dprintf("\nptrace cont2\n");
 	ptrace_cont(target);
 
 	// check out what the registers look like after calling
 	// __libc_dlopen_mode.
 	struct REG_TYPE dlopen_regs;
 	memset(&dlopen_regs, 0, sizeof(struct REG_TYPE));
-	dprintf("\npthread getregs2\n");
+	dprintf("\nptrace getregs2\n");
 	ptrace_getregs(target, &dlopen_regs);
 	unsigned long libAddr = dlopen_regs.gpr[15];
 //	dprintf("libAddr=%s\n", (char*)libAddr);
